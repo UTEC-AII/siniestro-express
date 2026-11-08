@@ -1,0 +1,56 @@
+{
+  "name": "SiniestroExpress — dev",
+  "values": [
+    {
+      "key": "core_url",
+      "value": "https://mtfp7wymnk.execute-api.us-east-1.amazonaws.com/dev",
+      "enabled": true
+    },
+    {
+      "key": "agente_url",
+      "value": "https://2sb8uu91cb.execute-api.us-east-1.amazonaws.com/dev",
+      "enabled": true
+    },
+    {
+      "key": "ml_url",
+      "value": "https://d0rejppvii.execute-api.us-east-1.amazonaws.com/dev",
+      "enabled": true
+    },
+    {
+      "key": "poliza",
+      "value": "AUTO-2026-8801",
+      "enabled": true
+    },
+    {
+      "key": "chat_id",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "expediente_id",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "codigo",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "upload_url",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "foto_key",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "poliza_inexistente",
+      "value": "AUTO-9999-0000",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

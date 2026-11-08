@@ -1,0 +1,174 @@
+service: siniestro-core
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  region: us-east-1
+  runtime: python3.14
+  timeout: 25
+  memorySize: 512
+  iam:
+    role: arn:aws:iam::${aws:accountId}:role/LabRole
+  environment:
+    POLIZAS_TABLE: siniestro-polizas-${sls:stage}
+    EXPEDIENTES_TABLE: siniestro-expedientes-${sls:stage}
+    ML_API_URL: ${env:ML_API_URL}
+    FOTOS_BUCKET:
+      Ref: FotosBucket
+
+functions:
+  poliza:
+    handler: handler.get_poliza
+    events:
+      - http:
+          path: /polizas/{poliza_id}
+          method: get
+          cors: true
+  crearExpediente:
+    handler: handler.create_expediente
+    events:
+      - http:
+          path: /expedientes
+          method: post
+          cors: true
+  listarExpedientes:
+    handler: handler.list_expedientes
+    events:
+      - http:
+          path: /expedientes
+          method: get
+          cors: true
+  seguimiento:
+    handler: handler.get_seguimiento
+    events:
+      - http:
+          path: /seguimiento/{codigo}
+          method: get
+          cors: true
+  obtenerExpediente:
+    handler: handler.get_expediente
+    events:
+      - http:
+          path: /expedientes/{expediente_id}
+          method: get
+          cors: true
+  actualizarExpediente:
+    handler: handler.update_expediente
+    events:
+      - http:
+          path: /expedientes/{expediente_id}
+          method: patch
+          cors: true
+  presignFoto:
+    handler: handler.presign_foto
+    events:
+      - http:
+          path: /expedientes/{expediente_id}/fotos/presign
+          method: post
+          cors: true
+  registrarFotos:
+    handler: handler.registrar_fotos
+    events:
+      - http:
+          path: /expedientes/{expediente_id}/fotos
+          method: post
+          cors: true
+  fotos:
+    handler: handler.fotos_del_expediente
+    events:
+      - http:
+          path: /expedientes/{expediente_id}/fotos
+          method: get
+          cors: true
+  exportar:
+    handler: handler.export_csv
+    events:
+      - http:
+          path: /export
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    FotosBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: siniestro-fotos-${sls:stage}-${aws:accountId}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods: [GET, PUT, HEAD]
+              AllowedOrigins: ["*"]
+              AllowedHeaders: ["*"]
+              MaxAge: 3000
+    PolizasTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: siniestro-polizas-${sls:stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: poliza_id
+            AttributeType: S
+          - AttributeName: cliente_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: poliza_id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: by_cliente
+            KeySchema:
+              - AttributeName: cliente_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+    ExpedientesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: siniestro-expedientes-${sls:stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: expediente_id
+            AttributeType: S
+          - AttributeName: cliente_id
+            AttributeType: S
+          - AttributeName: estado
+            AttributeType: S
+          - AttributeName: codigo_seguimiento
+            AttributeType: S
+        KeySchema:
+          - AttributeName: expediente_id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: by_cliente
+            KeySchema:
+              - AttributeName: cliente_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: by_estado
+            KeySchema:
+              - AttributeName: estado
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: by_codigo
+            KeySchema:
+              - AttributeName: codigo_seguimiento
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+  Outputs:
+    CoreApiUrl:
+      Value:
+        Fn::Join:
+          - ""
+          - - "https://"
+            - Ref: ApiGatewayRestApi
+            - ".execute-api."
+            - Ref: AWS::Region
+            - ".amazonaws.com/"
+            - ${sls:stage}

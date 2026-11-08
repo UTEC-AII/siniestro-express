@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+<g fill="none" stroke="#ff9254" stroke-width="1" opacity="0.1">
+<g transform="rotate(-12 640 360)">
+<ellipse cx="640" cy="360" rx="180" ry="105"/>
+<ellipse cx="640" cy="360" rx="222" ry="132"/>
+<ellipse cx="640" cy="360" rx="264" ry="159"/>
+<ellipse cx="640" cy="360" rx="306" ry="186"/>
+<ellipse cx="640" cy="360" rx="348" ry="213"/>
+<ellipse cx="640" cy="360" rx="390" ry="240"/>
+<ellipse cx="640" cy="360" rx="432" ry="267"/>
+<ellipse cx="640" cy="360" rx="474" ry="294"/>
+<ellipse cx="640" cy="360" rx="516" ry="321"/>
+<ellipse cx="640" cy="360" rx="558" ry="348"/>
+<ellipse cx="640" cy="360" rx="600" ry="375"/>
+<ellipse cx="640" cy="360" rx="642" ry="402"/>
+<ellipse cx="640" cy="360" rx="684" ry="429"/>
+<ellipse cx="640" cy="360" rx="726" ry="456"/>
+<ellipse cx="640" cy="360" rx="768" ry="483"/>
+<ellipse cx="640" cy="360" rx="810" ry="510"/>
+<ellipse cx="640" cy="360" rx="852" ry="537"/>
+<ellipse cx="640" cy="360" rx="894" ry="564"/>
+<ellipse cx="640" cy="360" rx="936" ry="591"/>
+<ellipse cx="640" cy="360" rx="978" ry="618"/>
+<ellipse cx="640" cy="360" rx="1020" ry="645"/>
+<ellipse cx="640" cy="360" rx="1062" ry="672"/>
+</g>
+<g transform="rotate(12 960 360)">
+<ellipse cx="960" cy="360" rx="180" ry="105"/>
+<ellipse cx="960" cy="360" rx="222" ry="132"/>
+<ellipse cx="960" cy="360" rx="264" ry="159"/>
+<ellipse cx="960" cy="360" rx="306" ry="186"/>
+<ellipse cx="960" cy="360" rx="348" ry="213"/>
+<ellipse cx="960" cy="360" rx="390" ry="240"/>
+<ellipse cx="960" cy="360" rx="432" ry="267"/>
+<ellipse cx="960" cy="360" rx="474" ry="294"/>
+<ellipse cx="960" cy="360" rx="516" ry="321"/>
+<ellipse cx="960" cy="360" rx="558" ry="348"/>
+<ellipse cx="960" cy="360" rx="600" ry="375"/>
+<ellipse cx="960" cy="360" rx="642" ry="402"/>
+<ellipse cx="960" cy="360" rx="684" ry="429"/>
+<ellipse cx="960" cy="360" rx="726" ry="456"/>
+<ellipse cx="960" cy="360" rx="768" ry="483"/>
+<ellipse cx="960" cy="360" rx="810" ry="510"/>
+<ellipse cx="960" cy="360" rx="852" ry="537"/>
+<ellipse cx="960" cy="360" rx="894" ry="564"/>
+<ellipse cx="960" cy="360" rx="936" ry="591"/>
+<ellipse cx="960" cy="360" rx="978" ry="618"/>
+<ellipse cx="960" cy="360" rx="1020" ry="645"/>
+<ellipse cx="960" cy="360" rx="1062" ry="672"/>
+</g>
+</g></svg>

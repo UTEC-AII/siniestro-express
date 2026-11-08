@@ -1,0 +1,78 @@
+service: siniestro-agente
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  region: us-east-1
+  runtime: python3.14
+  timeout: 25
+  memorySize: 512
+  iam:
+    role: arn:aws:iam::${aws:accountId}:role/LabRole
+  environment:
+    GROQ_API_KEY: ${env:GROQ_API_KEY}
+    GROQ_MODEL: "openai/gpt-oss-120b"
+    CHAT_TABLE: siniestro-chat-${sls:stage}
+    CORE_API_URL: ${env:CORE_API_URL}
+
+functions:
+  createChat:
+    handler: handler.create_chat
+    events:
+      - http:
+          path: /chats
+          method: post
+          cors: true
+  listChats:
+    handler: handler.list_chats
+    events:
+      - http:
+          path: /chats
+          method: get
+          cors: true
+  getChat:
+    handler: handler.get_chat
+    events:
+      - http:
+          path: /chats/{chatId}
+          method: get
+          cors: true
+  sendMessage:
+    handler: handler.send_message
+    events:
+      - http:
+          path: /chats/{chatId}/messages
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    ChatTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: siniestro-chat-${sls:stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        TimeToLiveSpecification:
+          AttributeName: expiraEn
+          Enabled: true
+  Outputs:
+    AgenteApiUrl:
+      Value:
+        Fn::Join:
+          - ""
+          - - "https://"
+            - Ref: ApiGatewayRestApi
+            - ".execute-api."
+            - Ref: AWS::Region
+            - ".amazonaws.com/"
+            - ${sls:stage}

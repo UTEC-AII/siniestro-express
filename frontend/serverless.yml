@@ -1,0 +1,50 @@
+service: siniestro-web
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::${aws:accountId}:role/LabRole
+
+plugins:
+  - serverless-s3-sync
+  - serverless-plugin-scripts
+
+custom:
+  bucketName: siniestro-express-web-${sls:stage}-${aws:accountId}
+  s3Sync:
+    - bucketName: ${self:custom.bucketName}
+      localDir: dist
+  scripts:
+    hooks:
+      "before:deploy:deploy": npm run build
+
+resources:
+  Resources:
+    WebBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucketName}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+          BlockPublicPolicy: false
+          IgnorePublicAcls: false
+          RestrictPublicBuckets: false
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: index.html
+    WebBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: { Ref: WebBucket }
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal: "*"
+              Action: "s3:GetObject"
+              Resource: !Sub "${WebBucket.Arn}/*"
+  Outputs:
+    WebsiteURL:
+      Value: !GetAtt WebBucket.WebsiteURL

@@ -1,0 +1,800 @@
+{
+  "info": {
+    "name": "SiniestroExpress — Proyecto Final Cloud Computing",
+    "description": "Flujo completo del MVP: modelos de ML, pólizas, chat agéntico con memoria, seguimiento, expediente, fotos y exportación.\n\nOrden: ejecutar las carpetas de arriba hacia abajo. Las variables se guardan solas entre peticiones (chat_id, expediente_id, codigo).\n\nAntes de correr: completar las variables core_url, agente_url y ml_url con tus URL de API Gateway, incluido /dev.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "core_url",
+      "value": "https://TU-CORE.execute-api.us-east-1.amazonaws.com/dev"
+    },
+    {
+      "key": "agente_url",
+      "value": "https://TU-AGENTE.execute-api.us-east-1.amazonaws.com/dev"
+    },
+    {
+      "key": "ml_url",
+      "value": "https://TU-ML.execute-api.us-east-1.amazonaws.com/dev"
+    },
+    {
+      "key": "poliza",
+      "value": "AUTO-2026-8801"
+    },
+    {
+      "key": "chat_id",
+      "value": ""
+    },
+    {
+      "key": "expediente_id",
+      "value": ""
+    },
+    {
+      "key": "codigo",
+      "value": ""
+    },
+    {
+      "key": "upload_url",
+      "value": ""
+    },
+    {
+      "key": "foto_key",
+      "value": ""
+    },
+    {
+      "key": "poliza_inexistente",
+      "value": "AUTO-9999-0000"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Modelos de Machine Learning",
+      "item": [
+        {
+          "name": "Salud del servicio de ML",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ml_url}}/ml/health",
+              "host": [
+                "{{ml_url}}"
+              ],
+              "path": [
+                "ml",
+                "health"
+              ]
+            },
+            "description": "Verifica que los bosques exportados cargan sin dependencias."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('carga los dos modelos', () => {",
+                  "  pm.expect(d.modelos.costo.arboles).to.eql(250);",
+                  "  pm.test('clasificador con 200 arboles', () => pm.expect(d.modelos.abandono.arboles).to.eql(200));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Costo de reparación (severidad Leve)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{ml_url}}/ml/costo-reparacion",
+              "host": [
+                "{{ml_url}}"
+              ],
+              "path": [
+                "ml",
+                "costo-reparacion"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_vehiculo\": 5,\n  \"valor_vehiculo\": 97000,\n  \"severidad\": \"Leve\",\n  \"tipo_siniestro\": \"Colision\",\n  \"piezas_afectadas\": 2,\n  \"requiere_grua\": 0,\n  \"combustible\": \"Gasolina\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('devuelve monto en soles', () => {",
+                  "  pm.expect(d.moneda).to.eql('PEN');",
+                  "  pm.expect(d.costo_reparacion_estimado).to.be.above(0);",
+                  "});",
+                  "pm.test('Leve no supera el umbral de pago exprés', () =>",
+                  "  pm.expect(d.costo_reparacion_estimado).to.be.below(1000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Costo de reparación (severidad Grave)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{ml_url}}/ml/costo-reparacion",
+              "host": [
+                "{{ml_url}}"
+              ],
+              "path": [
+                "ml",
+                "costo-reparacion"
+              ]
+            },
+            "description": "Mismo vehículo, misma cantidad de piezas: cambia solo la severidad.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_vehiculo\": 5,\n  \"valor_vehiculo\": 97000,\n  \"severidad\": \"Grave\",\n  \"tipo_siniestro\": \"Colision\",\n  \"piezas_afectadas\": 2,\n  \"requiere_grua\": 0,\n  \"combustible\": \"Gasolina\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('el monto sube con la severidad', () =>",
+                  "  pm.expect(pm.response.json().costo_reparacion_estimado).to.be.above(5000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Probabilidad de abandono",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{ml_url}}/ml/abandono",
+              "host": [
+                "{{ml_url}}"
+              ],
+              "path": [
+                "ml",
+                "abandono"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"edad\": 41,\n  \"antiguedad\": 6,\n  \"prima_mensual\": 210.5,\n  \"numero_siniestros\": 1,\n  \"numero_reclamos\": 0,\n  \"renovaciones\": 4\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('probabilidad entre 0 y 1', () => {",
+                  "  pm.expect(d.probabilidad_abandono).to.be.within(0, 1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enum inválido devuelve 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{ml_url}}/ml/costo-reparacion",
+              "host": [
+                "{{ml_url}}"
+              ],
+              "path": [
+                "ml",
+                "costo-reparacion"
+              ]
+            },
+            "description": "Evidencia de validación: el modelo no acepta categorías que no conoce.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_vehiculo\": 5,\n  \"valor_vehiculo\": 97000,\n  \"severidad\": \"catastrofica\",\n  \"tipo_siniestro\": \"Colision\",\n  \"piezas_afectadas\": 2,\n  \"requiere_grua\": 0,\n  \"combustible\": \"Gasolina\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 por valor fuera del enum', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Pólizas y expedientes",
+      "item": [
+        {
+          "name": "Consultar póliza",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{core_url}}/polizas/{{poliza}}",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "polizas",
+                "{{poliza}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('trae el vehículo', () => pm.expect(d.vehiculo_marca).to.be.a('string'));",
+                  "pm.test('trae el deducible de la póliza', () => pm.expect(d.deducible_pct).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Póliza inexistente devuelve 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{core_url}}/polizas/{{poliza_inexistente}}",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "polizas",
+                "{{poliza_inexistente}}"
+              ]
+            },
+            "description": "Prueba de error: una póliza que no existe debe devolver 404 y no un caso vacío. El valor vive en la variable poliza_inexistente, no en la URL."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar expedientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{core_url}}/expedientes",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "expedientes"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('devuelve una lista', () => pm.expect(pm.response.json().expedientes).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Chat agéntico con memoria",
+      "item": [
+        {
+          "name": "Crear chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{agente_url}}/chats",
+              "host": [
+                "{{agente_url}}"
+              ],
+              "path": [
+                "chats"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"poliza_id\": \"{{poliza}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json();",
+                  "pm.test('devuelve chatId', () => pm.expect(d.chatId).to.be.a('string'));",
+                  "pm.collectionVariables.set('chat_id', d.chatId);",
+                  "console.log('chat_id:', d.chatId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Turno 1: choque fuerte con grua",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{agente_url}}/chats/{{chat_id}}/messages",
+              "host": [
+                "{{agente_url}}"
+              ],
+              "path": [
+                "chats",
+                "{{chat_id}}",
+                "messages"
+              ]
+            },
+            "description": "El asegurado cuenta todo de golpe: tipo, ocho piezas y grúa. El agente debe extraer varios datos sin preguntarlos uno por uno.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Choque fuerte, ocho piezas dañadas y necesité grúa\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('extrae la cantidad de piezas', () =>",
+                  "  pm.expect(d.slots.piezas_afectadas).to.eql(8));",
+                  "pm.test('registra que necesito grua', () =>",
+                  "  pm.expect(d.slots.requiere_grua).to.eql(1));",
+                  "pm.test('clasifica como choque, no como robo', () =>",
+                  "  pm.expect(['Colision', 'Choque_Multiple']).to.include(d.slots.tipo_siniestro));",
+                  "if (d.expediente && d.expediente.expediente_id) {",
+                  "  pm.collectionVariables.set('expediente_id', d.expediente.expediente_id);",
+                  "  pm.collectionVariables.set('codigo', d.expediente.codigo_seguimiento);",
+                  "  console.log('codigo de seguimiento:', d.expediente.codigo_seguimiento);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Turno 2: cierra o confirma el caso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{agente_url}}/chats/{{chat_id}}/messages",
+              "host": [
+                "{{agente_url}}"
+              ],
+              "path": [
+                "chats",
+                "{{chat_id}}",
+                "messages"
+              ]
+            },
+            "description": "Si el turno anterior ya cerro el caso, el agente devuelve el mismo expediente en lugar de crear otro. Si faltaba la severidad, la completa aca.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"fue grave\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('el caso queda registrado', () =>",
+                  "  pm.expect(d.expediente.expediente_id).to.be.a('string'));",
+                  "pm.test('entrega codigo de seguimiento', () =>",
+                  "  pm.expect(d.expediente.codigo_seguimiento).to.match(/^SE-[A-Z0-9]{6}$/));",
+                  "pm.collectionVariables.set('expediente_id', d.expediente.expediente_id);",
+                  "pm.collectionVariables.set('codigo', d.expediente.codigo_seguimiento);",
+                  "console.log('codigo de seguimiento:', d.expediente.codigo_seguimiento);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial del chat",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{agente_url}}/chats/{{chat_id}}",
+              "host": [
+                "{{agente_url}}"
+              ],
+              "path": [
+                "chats",
+                "{{chat_id}}"
+              ]
+            },
+            "description": "Memoria conversacional en DynamoDB."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('conserva la conversación', () =>",
+                  "  pm.expect(pm.response.json().messages.length).to.be.at.least(4));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Seguimiento y decisión",
+      "item": [
+        {
+          "name": "Consultar por código de seguimiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{core_url}}/seguimiento/{{codigo}}",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "seguimiento",
+                "{{codigo}}"
+              ]
+            },
+            "description": "Es la vista pública del caso: sin datos internos del cliente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('devuelve la ruta y el monto', () => {",
+                  "  pm.expect(pm.response.json().ruta).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar el expediente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{core_url}}/expedientes/{{expediente_id}}",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "expedientes",
+                "{{expediente_id}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"RECHAZADO\",\n  \"nota\": \"Documentación incompleta\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Un rechazado no vuelve a aprobarse (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{core_url}}/expedientes/{{expediente_id}}",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "expedientes",
+                "{{expediente_id}}"
+              ]
+            },
+            "description": "La máquina de estados vive en el backend, no solo en los botones.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"APROBADO\",\n  \"nota\": \"intento de reapertura\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 transición no permitida', () => pm.response.to.have.status(409));",
+                  "pm.test('explica el estado actual', () => {",
+                  "  const d = pm.response.json();",
+                  "  pm.test('estado RECHAZADO', () => pm.expect(d.estado_actual).to.eql('RECHAZADO'));",
+                  "  pm.test('sin acciones disponibles', () => pm.expect(d.permitidas).to.be.an('array').that.is.empty);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Fotos y exportación",
+      "item": [
+        {
+          "name": "URL firmada para subir una foto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{core_url}}/expedientes/{{expediente_id}}/fotos/presign",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "expedientes",
+                "{{expediente_id}}",
+                "fotos",
+                "presign"
+              ]
+            },
+            "description": "En Postman, sube el archivo con PUT a {{upload_url}} (pestaña Body > binary).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content_type\": \"image/jpeg\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('devuelve URL y clave', () => {",
+                  "  pm.expect(d.upload_url).to.include('http');",
+                  "  pm.expect(d.key).to.include('expedientes/');",
+                  "});",
+                  "pm.collectionVariables.set('upload_url', d.upload_url);",
+                  "pm.collectionVariables.set('foto_key', d.key);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar las fotos en el expediente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keys\": [\"{{foto_key}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{core_url}}/expedientes/{{expediente_id}}/fotos",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "expedientes",
+                "{{expediente_id}}",
+                "fotos"
+              ]
+            },
+            "description": "Después del PUT a S3, se registran las claves en el expediente. Sin este paso las fotos no aparecen en el seguimiento."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('cuenta al menos una foto', () =>",
+                  "  pm.expect(pm.response.json().fotos).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar fotos del expediente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{core_url}}/expedientes/{{expediente_id}}/fotos",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "expedientes",
+                "{{expediente_id}}",
+                "fotos"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('devuelve lista de fotos', () =>",
+                  "  pm.expect(pm.response.json().fotos).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exportar CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{core_url}}/export",
+              "host": [
+                "{{core_url}}"
+              ],
+              "path": [
+                "export"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('es un CSV', () =>",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv'));",
+                  "pm.test('usa coma como separador', () =>",
+                  "  pm.expect(pm.response.text().split('\\n')[0]).to.include(','));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

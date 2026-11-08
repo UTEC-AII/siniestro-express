@@ -1,0 +1,54 @@
+service: siniestro-ml
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  region: us-east-1
+  runtime: python3.14
+  timeout: 10
+  memorySize: 256
+  iam:
+    role: arn:aws:iam::${aws:accountId}:role/LabRole
+
+package:
+  patterns:
+    - "!tests/**"
+    - "!models/*.joblib"
+
+functions:
+  costo:
+    handler: handler.costo
+    description: Estima el costo de reparación en soles.
+    events:
+      - http:
+          path: /ml/costo-reparacion
+          method: post
+          cors: true
+  abandono:
+    handler: handler.abandono
+    description: Estima la probabilidad de abandono del asegurado.
+    events:
+      - http:
+          path: /ml/abandono
+          method: post
+          cors: true
+  health:
+    handler: handler.health
+    events:
+      - http:
+          path: /ml/health
+          method: get
+          cors: true
+
+resources:
+  Outputs:
+    MlApiUrl:
+      Value:
+        Fn::Join:
+          - ""
+          - - "https://"
+            - Ref: ApiGatewayRestApi
+            - ".execute-api."
+            - Ref: AWS::Region
+            - ".amazonaws.com/"
+            - ${sls:stage}

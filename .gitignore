@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.serverless/
+.env
+config.local.js
+__pycache__/
+*.pyc
+.venv/
+models/*.joblib
+.DS_Store
+
+# artefactos de entrenamiento
+services/ml/training/models/*.joblib
+
+# auxiliares de LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
